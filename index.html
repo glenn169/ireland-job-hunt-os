@@ -26,12 +26,9 @@
 
     <div class="main">
       <header class="topbar">
-        <div style="display:flex;align-items:center">
+        <div class="topbar-title">
           <button class="mobile-menu" id="mobileMenu" aria-label="Open navigation">☰</button>
-          <div>
-            <strong id="pageTitle">Dashboard</strong>
-            <p id="currentDate"></p>
-          </div>
+          <div><strong id="pageTitle">Dashboard</strong><p id="currentDate"></p></div>
         </div>
         <button class="btn" id="quickAddJob">+ Add Job</button>
       </header>
@@ -57,17 +54,16 @@
             <div>
               <section class="panel">
                 <h3>🔥 High Match Jobs</h3>
-                <div class="empty">No jobs analysed yet. High-match opportunities will appear here after the Job Tracker and Match Engine are added.</div>
+                <div id="highMatchJobs" class="empty">No scored jobs yet.</div>
               </section>
               <section class="panel">
                 <h3>⚠ Follow-ups</h3>
-                <div class="empty" id="followUpList">No follow-ups due.</div>
+                <div id="followUpList" class="empty">No follow-ups due.</div>
               </section>
             </div>
-
             <div>
               <section class="panel">
-                <h3>🎯 Today's Goals <span id="goalProgress" style="float:right;color:var(--accent);font-size:12px">0 / 6</span></h3>
+                <h3>🎯 Today's Goals <span id="goalProgress" class="goal-progress">0 / 6</span></h3>
                 <div class="goals" id="dailyGoals">
                   <label class="goal"><input type="checkbox" data-goal="findJobs"><span>Find 5 suitable jobs</span></label>
                   <label class="goal"><input type="checkbox" data-goal="applyJobs"><span>Apply to 3 jobs</span></label>
@@ -77,39 +73,70 @@
                   <label class="goal"><input type="checkbox" data-goal="interview"><span>Review interview questions</span></label>
                 </div>
               </section>
-
               <section class="panel">
                 <h3>🎓 Current Learning Priorities</h3>
-                <div class="roles">
-                  <span class="tag">Microsoft Sentinel</span>
-                  <span class="tag">Azure</span>
-                  <span class="tag">Active Directory</span>
-                </div>
+                <div class="roles"><span class="tag">Microsoft Sentinel</span><span class="tag">Azure</span><span class="tag">Active Directory</span></div>
               </section>
             </div>
           </div>
 
-          <section class="panel">
-            <h3>🎯 Target Roles</h3>
-            <div class="roles" id="targetRoles"></div>
+          <section class="panel"><h3>🎯 Target Roles</h3><div class="roles" id="targetRoles"></div></section>
+          <section class="panel"><h3>◷ Recent Activity</h3><div id="recentActivity" class="empty">Your recent activity will appear here.</div></section>
+        </section>
+
+        <section class="page" id="jobsPage">
+          <div class="page-heading">
+            <div><div class="eyebrow">APPLICATION PIPELINE</div><h1>Job Tracker</h1><p>Save opportunities, track progress and never miss a follow-up.</p></div>
+            <button class="btn" id="addJobButton">+ Add Job</button>
+          </div>
+
+          <section class="tracker-summary" id="trackerSummary"></section>
+
+          <section class="panel tracker-toolbar">
+            <div class="field search-field"><label for="jobSearch">Search</label><input id="jobSearch" type="search" placeholder="Company, position, location or skill..."></div>
+            <div class="field"><label for="statusFilter">Status</label><select id="statusFilter"><option value="">All statuses</option></select></div>
+            <div class="field"><label for="arrangementFilter">Work arrangement</label><select id="arrangementFilter"><option value="">All</option><option>On-site</option><option>Hybrid</option><option>Remote</option></select></div>
+            <div class="field"><label for="jobSort">Sort</label><select id="jobSort"><option value="newest">Newest discovered</option><option value="oldest">Oldest discovered</option><option value="matchHigh">Highest match</option><option value="deadline">Nearest deadline</option><option value="company">Company A–Z</option></select></div>
           </section>
 
-          <section class="panel">
-            <h3>◷ Recent Activity</h3>
-            <div class="empty">Your recent applications and job-search activity will appear here.</div>
-          </section>
+          <div class="job-count-row"><span id="jobCount">0 jobs</span><button class="link-button" id="clearFilters">Clear filters</button></div>
+          <section id="jobList" class="job-grid"></section>
         </section>
 
         <section class="page" id="placeholderPage">
-          <div class="panel placeholder">
-            <h2 id="placeholderTitle">Coming Soon</h2>
-            <p id="placeholderDescription"></p>
-            <button class="btn" id="returnDashboard">← Return to Dashboard</button>
-          </div>
+          <div class="panel placeholder"><h2 id="placeholderTitle">Coming Soon</h2><p id="placeholderDescription"></p><button class="btn" id="returnDashboard">← Return to Dashboard</button></div>
         </section>
       </main>
     </div>
   </div>
+
+  <div class="modal-backdrop" id="jobModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="jobModalTitle">
+      <div class="modal-header"><div><div class="eyebrow">JOB RECORD</div><h2 id="jobModalTitle">Add Job</h2></div><button class="icon-button" id="closeJobModal" aria-label="Close">✕</button></div>
+      <form id="jobForm">
+        <input type="hidden" id="jobId">
+        <div class="form-grid">
+          <div class="field"><label for="company">Company *</label><input id="company" required maxlength="100"></div>
+          <div class="field"><label for="position">Position *</label><input id="position" required maxlength="120"></div>
+          <div class="field field-wide"><label for="jobUrl">Job URL</label><input id="jobUrl" type="url" placeholder="https://..."></div>
+          <div class="field"><label for="location">Location</label><input id="location" placeholder="Dublin, Cork, Remote..."></div>
+          <div class="field"><label for="workArrangement">Work arrangement</label><select id="workArrangement"><option value="">Not specified</option><option>On-site</option><option>Hybrid</option><option>Remote</option></select></div>
+          <div class="field"><label for="salary">Salary</label><input id="salary" placeholder="e.g. €35,000–€40,000"></div>
+          <div class="field"><label for="jobType">Job type</label><select id="jobType"><option value="">Not specified</option><option>Full-time</option><option>Graduate</option><option>Contract</option><option>Internship</option><option>Part-time</option></select></div>
+          <div class="field"><label for="dateDiscovered">Date discovered</label><input id="dateDiscovered" type="date"></div>
+          <div class="field"><label for="applicationDeadline">Application deadline</label><input id="applicationDeadline" type="date"></div>
+          <div class="field"><label for="dateApplied">Date applied</label><input id="dateApplied" type="date"></div>
+          <div class="field"><label for="status">Status *</label><select id="status" required></select></div>
+          <div class="field"><label for="matchScore">Match score</label><input id="matchScore" type="number" min="0" max="100" placeholder="0–100"></div>
+          <div class="field"><label for="followUpDate">Follow-up date</label><input id="followUpDate" type="date"></div>
+          <div class="field field-wide"><label for="requiredSkills">Required skills</label><input id="requiredSkills" placeholder="SIEM, Linux, Azure, Networking..."><small>Separate skills with commas.</small></div>
+          <div class="field field-wide"><label for="notes">Notes</label><textarea id="notes" rows="4" placeholder="Recruiter details, application notes, next steps..."></textarea></div>
+        </div>
+        <div class="modal-actions"><button type="button" class="secondary-btn" id="cancelJob">Cancel</button><button type="submit" class="btn">Save Job</button></div>
+      </form>
+    </div>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>
