@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Ireland Cybersecurity Job Hunt OS - personal job-search command centre.">
   <title>Ireland Cybersecurity Job Hunt OS</title>
-  <link rel="stylesheet" href="style.css?v=3">
-  <link rel="stylesheet" href="analyzer.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="analyzer.css?v=4">
 </head>
 <body>
   <div class="app">
@@ -109,12 +109,28 @@
             <div>
               <div class="eyebrow">JOB DESCRIPTION INTELLIGENCE</div>
               <h1>Job Description Analyzer</h1>
-              <p>Paste a job description to extract skills, qualifications, ATS keywords, experience level and Irish location signals.</p>
+              <p>Analyse networking, NOC, IT support, cybersecurity, cloud, systems, engineering and other technical roles using both the job description and your own profile context.</p>
             </div>
-            <button class="secondary-btn" id="clearAnalyzer">Clear</button>
+            <button class="secondary-btn" id="clearAnalyzer">Clear job</button>
           </div>
 
           <div class="analyzer-layout">
+            <section class="panel candidate-context-panel">
+              <div class="analysis-card-head">
+                <div><div class="eyebrow">OPTIONAL PROFILE CONTEXT</div><h3>Your resume / skills / profile</h3></div>
+                <span class="analysis-count" id="profileContextStatus">Local</span>
+              </div>
+              <div class="field">
+                <label for="candidateContextInput">Candidate context</label>
+                <textarea id="candidateContextInput" class="candidate-context-input" placeholder="Paste your resume, skills list, certifications, education or profile summary here. This is saved only in your browser."></textarea>
+                <div class="analyzer-input-meta"><span id="candidateContextCount">0 characters</span><span>Used only to show matched skills and possible gaps.</span></div>
+              </div>
+              <div class="analyzer-actions profile-actions">
+                <button class="secondary-btn" id="clearCandidateContext">Clear profile context</button>
+                <button class="btn" id="saveCandidateContext">Save profile context</button>
+              </div>
+            </section>
+
             <section class="panel analyzer-input-panel">
               <div class="field">
                 <label for="jobDescriptionInput">Job description</label>
@@ -129,7 +145,7 @@
             <section id="analyzerEmptyState" class="panel analyzer-empty">
               <div class="analyzer-empty-icon">⌕</div>
               <h3>Ready to analyse</h3>
-              <p>Paste a cybersecurity or IT job description and the app will identify structured requirements without sending the text anywhere.</p>
+              <p>Paste a technical job description. The analyzer detects explicit skills, support processes, certifications, experience, location, salary and work-arrangement signals without sending the text anywhere.</p>
             </section>
 
             <section id="analyzerResults" class="analyzer-results" hidden>
@@ -137,18 +153,23 @@
                 <article class="analysis-summary-card"><span>Experience</span><strong id="analysisExperience">Not detected</strong></article>
                 <article class="analysis-summary-card"><span>Location</span><strong id="analysisLocation">Not detected</strong></article>
                 <article class="analysis-summary-card"><span>Work arrangement</span><strong id="analysisArrangement">Not detected</strong></article>
-                <article class="analysis-summary-card"><span>Skills found</span><strong id="analysisSkillCount">0</strong></article>
+                <article class="analysis-summary-card"><span>Salary</span><strong id="analysisSalary">Not detected</strong></article>
               </div>
 
               <div class="analysis-grid">
                 <article class="panel analysis-card">
-                  <div class="analysis-card-head"><h3>Required skills</h3><span class="analysis-count" id="skillsCountBadge">0</span></div>
+                  <div class="analysis-card-head"><h3>Skills & technologies</h3><span class="analysis-count" id="skillsCountBadge">0</span></div>
                   <div id="analysisSkills" class="analysis-chips"></div>
                 </article>
 
                 <article class="panel analysis-card">
-                  <div class="analysis-card-head"><h3>Qualifications</h3><span class="analysis-count" id="qualificationsCountBadge">0</span></div>
+                  <div class="analysis-card-head"><h3>Qualifications & eligibility</h3><span class="analysis-count" id="qualificationsCountBadge">0</span></div>
                   <div id="analysisQualifications" class="analysis-list"></div>
+                </article>
+
+                <article class="panel analysis-card">
+                  <div class="analysis-card-head"><h3>Support / operational requirements</h3><span class="analysis-count" id="requirementsCountBadge">0</span></div>
+                  <div id="analysisRequirements" class="analysis-list"></div>
                 </article>
 
                 <article class="panel analysis-card">
@@ -157,8 +178,14 @@
                 </article>
 
                 <article class="panel analysis-card">
-                  <div class="analysis-card-head"><h3>Detected requirements</h3></div>
-                  <div id="analysisRequirements" class="analysis-list"></div>
+                  <div class="analysis-card-head"><h3>Matched to your profile</h3><span class="analysis-count" id="matchedCountBadge">0</span></div>
+                  <div id="analysisMatched" class="analysis-chips"></div>
+                </article>
+
+                <article class="panel analysis-card">
+                  <div class="analysis-card-head"><h3>Potential gaps to review</h3><span class="analysis-count" id="gapsCountBadge">0</span></div>
+                  <div id="analysisGaps" class="analysis-chips"></div>
+                  <p class="analysis-notice">A gap means the term was not found in your saved profile context. It does not prove you lack the skill.</p>
                 </article>
               </div>
 
@@ -166,7 +193,7 @@
                 <div>
                   <div class="eyebrow">USE THIS ANALYSIS</div>
                   <h3>Save the extracted requirements to Job Tracker</h3>
-                  <p>Create a new saved job with the extracted skills and analysis notes, then complete the company and position details in the tracker.</p>
+                  <p>Create a saved job with the extracted technologies, operational requirements, experience, qualifications and ATS notes.</p>
                 </div>
                 <button class="btn" id="saveAnalysisToTracker">Save to Job Tracker</button>
               </section>
@@ -208,7 +235,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=3"></script>
-  <script src="analyzer.js?v=3"></script>
+  <script src="app.js?v=4"></script>
+  <script src="analyzer.js?v=4"></script>
 </body>
 </html>
