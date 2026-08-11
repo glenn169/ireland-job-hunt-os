@@ -1,0 +1,39 @@
+name: Check Stage 11
+on:
+  push:
+    branches: [stage-11-application-workspace]
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: stage-11-application-workspace
+      - name: Wire cache version and check JavaScript
+        run: |
+          node --check stage11.js
+          node --check stage6.js
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          old='stage6.js?v=26'
+          new='stage6.js?v=27'
+          if old in s:
+              s=s.replace(old,new)
+              p.write_text(s)
+          elif new not in s:
+              raise SystemExit('Could not find expected stage6 cache reference')
+          PY
+      - name: Remove one-time workflow
+        run: rm .github/workflows/check-stage11.yml
+      - name: Commit final wiring
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- index.html .github/workflows/check-stage11.yml
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Finish Stage 11 application workspace wiring"
+          git push origin HEAD:stage-11-application-workspace
