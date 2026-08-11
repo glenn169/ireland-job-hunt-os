@@ -11,22 +11,9 @@ function s6ReadJSON(key, fallback){
   catch { return fallback; }
 }
 
-function s6Profile(){
-  return s6ReadJSON(STAGE6_PROFILE_KEY, {});
-}
-
-function s6State(){
-  return s6ReadJSON(STAGE6_APP_KEY, {jobs:[]});
-}
-
-function s6Normalise(value){
-  return String(value || "")
-    .toLowerCase()
-    .replace(/&/g," and ")
-    .replace(/[^a-z0-9+#./ -]/g," ")
-    .replace(/\s+/g," ")
-    .trim();
-}
+function s6Profile(){ return s6ReadJSON(STAGE6_PROFILE_KEY, {}); }
+function s6State(){ return s6ReadJSON(STAGE6_APP_KEY, {jobs:[]}); }
+function s6Normalise(value){ return String(value || "").toLowerCase().replace(/&/g," and ").replace(/[^a-z0-9+#./ -]/g," ").replace(/\s+/g," ").trim(); }
 
 function s6ProfileEvidence(profile){
   return s6Normalise([
@@ -38,10 +25,7 @@ function s6ProfileEvidence(profile){
 }
 
 const S6_STOPWORDS = new Set("the a an and or to of in on for with from by as at is are be this that your our their role job team work working required preferred desirable essential experience skills skill knowledge ability strong excellent good using use support manage management related relevant candidate candidates years year".split(" "));
-
-function s6Words(value){
-  return s6Normalise(value).split(/\s+/).filter(word=>word.length>2 && !S6_STOPWORDS.has(word));
-}
+function s6Words(value){ return s6Normalise(value).split(/\s+/).filter(word=>word.length>2 && !S6_STOPWORDS.has(word)); }
 
 function s6MatchesProfile(item, evidence){
   const exact=s6Normalise(item);
@@ -59,9 +43,7 @@ function s6QualificationItems(notes){
   return match[1].split(/,|\||;/).map(v=>v.trim()).filter(v=>v && v.length<100);
 }
 
-function s6CleanRequirement(item){
-  return String(item||"").replace(/^[-•*\s]+/,"").replace(/\s+/g," ").trim();
-}
+function s6CleanRequirement(item){ return String(item||"").replace(/^[-•*\s]+/,"").replace(/\s+/g," ").trim(); }
 
 function s6BuildGapReport(){
   const profile=s6Profile();
@@ -178,10 +160,7 @@ function s6RenderDashboard(){
   const panel=heading?.closest(".panel");
   if(!panel) return;
   let container=panel.querySelector("#stage6DashboardPriorities");
-  if(!container){
-    panel.querySelector(".empty")?.remove();
-    container=document.createElement("div"); container.id="stage6DashboardPriorities"; panel.appendChild(container);
-  }
+  if(!container){ panel.querySelector(".empty")?.remove(); container=document.createElement("div"); container.id="stage6DashboardPriorities"; panel.appendChild(container); }
   const report=s6BuildGapReport();
   container.innerHTML="";
   if(!report.profileHasEvidence){ container.innerHTML='<div class="empty">Complete your Profile to generate personalised learning priorities.</div>'; return; }
@@ -213,4 +192,5 @@ function s6Init(){
   window.addEventListener("storage",s6Refresh);
 }
 
-document.addEventListener("DOMContentLoaded",s6Init);
+if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",s6Init);
+else s6Init();
