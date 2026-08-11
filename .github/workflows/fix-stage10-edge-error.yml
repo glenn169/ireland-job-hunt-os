@@ -1,0 +1,60 @@
+name: Fix Stage 10 Edge error
+
+on:
+  push:
+    branches: [fix-stage-10-edge-error-final]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix-stage-10-edge-error-final
+      - name: Patch Stage 10 error handling and cache version
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('stage10.js')
+          s=p.read_text()
+          needle='async function s10ResolveClient(){if(s10Client)return s10Client;for(let i=0;i<80;i++){const c=window.JobHuntCloudCV?.getClient?.();if(c){s10Client=c;return c;}await new Promise(r=>setTimeout(r,100));}return null;}\n'
+          helper='async function s10ResolveClient(){if(s10Client)return s10Client;for(let i=0;i<80;i++){const c=window.JobHuntCloudCV?.getClient?.();if(c){s10Client=c;return c;}await new Promise(r=>setTimeout(r,100));}return null;}\nasync function s10ErrorMessage(error){try{const response=error?.context;if(response&&typeof response.clone==="function"){const copy=response.clone();const body=await copy.json().catch(async()=>({error:await response.text().catch(()=>"")}));if(body?.error)return String(body.error);if(body?.message)return String(body.message);}}catch{}return error?.message||"Please try again.";}\n'
+          if needle not in s:
+              raise SystemExit('resolve client marker not found')
+          s=s.replace(needle,helper,1)
+          old='}catch(error){console.error("Stage 10 search failed",error);host.innerHTML=`<div class="panel s10-status">Live search failed. ${s10esc(error?.message||"Please try again.")}</div>`;}finally{'
+          new='}catch(error){console.error("Stage 10 search failed",error);const message=await s10ErrorMessage(error);host.innerHTML=`<div class="panel s10-status">Live search failed. ${s10esc(message)}</div>`;}finally{'
+          if old not in s:
+              raise SystemExit('catch marker not found')
+          s=s.replace(old,new,1)
+          p.write_text(s)
+
+          p=Path('stage6.js')
+          s=p.read_text().replace('?v=22','?v=23')
+          p.write_text(s)
+
+          p=Path('index.html')
+          s=p.read_text().replace('stage6.js?v=22','stage6.js?v=23')
+          p.write_text(s)
+          PY
+          node --check stage10.js
+          node --check stage6.js
+          grep -q 's10ErrorMessage' stage10.js
+          grep -q 'stage10.js?v=23' stage6.js
+          grep -q 'stage6.js?v=23' index.html
+      - name: Commit fix
+        run: |
+          git config user.name "Glenn Adriel Mendonca"
+          git config user.email "75622417+glenn169@users.noreply.github.com"
+          git add -- stage10.js stage6.js index.html
+          git commit -m "Fix Stage 10 Edge Function error handling"
+          git push origin HEAD:fix-stage-10-edge-error-final
+      - name: Remove workflow
+        run: |
+          git pull --rebase origin fix-stage-10-edge-error-final
+          git rm .github/workflows/fix-stage10-edge-error.yml
+          git commit -m "Remove one-time Stage 10 fix workflow"
+          git push origin HEAD:fix-stage-10-edge-error-final
