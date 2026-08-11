@@ -1,1 +1,115 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Ireland Job Hunt OS</title></head><body><h1>Ireland Job Hunt OS</h1></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Ireland Cybersecurity Job Hunt OS - personal job-search command centre.">
+  <title>Ireland Cybersecurity Job Hunt OS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">🇮🇪 Job Hunt OS<small>Cybersecurity Ireland</small></div>
+      <nav class="nav">
+        <button class="active" data-page="dashboard">▦ Dashboard</button>
+        <button data-page="jobs">💼 Job Tracker</button>
+        <button data-page="analyzer">⌕ Job Analyzer</button>
+        <button data-page="skills">◎ Skills</button>
+        <button data-page="daily">✓ Daily Job Hunt</button>
+        <button data-page="interviews">◉ Interview Prep</button>
+        <button data-page="analytics">▥ Analytics</button>
+        <button data-page="search">⌘ Job Search</button>
+        <button data-page="profile">♙ Profile</button>
+      </nav>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div style="display:flex;align-items:center">
+          <button class="mobile-menu" id="mobileMenu" aria-label="Open navigation">☰</button>
+          <div>
+            <strong id="pageTitle">Dashboard</strong>
+            <p id="currentDate"></p>
+          </div>
+        </div>
+        <button class="btn" id="quickAddJob">+ Add Job</button>
+      </header>
+
+      <main class="content">
+        <section class="page active" id="dashboardPage">
+          <div class="hero">
+            <div class="eyebrow">IRELAND CYBERSECURITY JOB HUNT</div>
+            <h1>Your job-search command centre</h1>
+            <p>Find → Evaluate → Apply → Track → Follow up → Prepare → Improve</p>
+          </div>
+
+          <section class="stats">
+            <article class="card"><div class="label">Applications</div><div class="value" id="totalApplications">0</div></article>
+            <article class="card"><div class="label">Interviews</div><div class="value" id="totalInterviews">0</div></article>
+            <article class="card"><div class="label">Offers</div><div class="value" id="totalOffers">0</div></article>
+            <article class="card"><div class="label">Saved Jobs</div><div class="value" id="savedJobs">0</div></article>
+            <article class="card"><div class="label">Follow-ups</div><div class="value" id="followUps">0</div></article>
+            <article class="card"><div class="label">Interview Rate</div><div class="value" id="interviewRate">0%</div></article>
+          </section>
+
+          <div class="grid">
+            <div>
+              <section class="panel">
+                <h3>🔥 High Match Jobs</h3>
+                <div class="empty">No jobs analysed yet. High-match opportunities will appear here after the Job Tracker and Match Engine are added.</div>
+              </section>
+              <section class="panel">
+                <h3>⚠ Follow-ups</h3>
+                <div class="empty" id="followUpList">No follow-ups due.</div>
+              </section>
+            </div>
+
+            <div>
+              <section class="panel">
+                <h3>🎯 Today's Goals <span id="goalProgress" style="float:right;color:var(--accent);font-size:12px">0 / 6</span></h3>
+                <div class="goals" id="dailyGoals">
+                  <label class="goal"><input type="checkbox" data-goal="findJobs"><span>Find 5 suitable jobs</span></label>
+                  <label class="goal"><input type="checkbox" data-goal="applyJobs"><span>Apply to 3 jobs</span></label>
+                  <label class="goal"><input type="checkbox" data-goal="followUps"><span>Follow up with 2 applications</span></label>
+                  <label class="goal"><input type="checkbox" data-goal="networking"><span>Send 1 networking message</span></label>
+                  <label class="goal"><input type="checkbox" data-goal="lab"><span>Complete 1 cybersecurity lab</span></label>
+                  <label class="goal"><input type="checkbox" data-goal="interview"><span>Review interview questions</span></label>
+                </div>
+              </section>
+
+              <section class="panel">
+                <h3>🎓 Current Learning Priorities</h3>
+                <div class="roles">
+                  <span class="tag">Microsoft Sentinel</span>
+                  <span class="tag">Azure</span>
+                  <span class="tag">Active Directory</span>
+                </div>
+              </section>
+            </div>
+          </div>
+
+          <section class="panel">
+            <h3>🎯 Target Roles</h3>
+            <div class="roles" id="targetRoles"></div>
+          </section>
+
+          <section class="panel">
+            <h3>◷ Recent Activity</h3>
+            <div class="empty">Your recent applications and job-search activity will appear here.</div>
+          </section>
+        </section>
+
+        <section class="page" id="placeholderPage">
+          <div class="panel placeholder">
+            <h2 id="placeholderTitle">Coming Soon</h2>
+            <p id="placeholderDescription"></p>
+            <button class="btn" id="returnDashboard">← Return to Dashboard</button>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
