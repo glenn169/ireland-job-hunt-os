@@ -358,11 +358,3 @@ function initStage5(){
 }
 
 document.addEventListener("DOMContentLoaded",initStage5);
-
-/* Stage 6 loader - kept separate so Stage 5 profile/CV code remains isolated. */
-(function loadStage6(){
-  const script=document.createElement("script");
-  script.src="stage6.js?v=8";
-  script.defer=true;
-  document.head.appendChild(script);
-})();
