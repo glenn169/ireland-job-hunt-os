@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Ireland Job Hunt OS - a personal job-search command centre for every career field.">
   <title>Ireland Job Hunt OS</title>
-  <link rel="stylesheet" href="style.css?v=6">
-  <link rel="stylesheet" href="analyzer.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="analyzer.css?v=7">
+  <link rel="stylesheet" href="profile.css?v=7">
 </head>
 <body>
   <div class="app">
@@ -114,13 +115,13 @@
           <div class="analyzer-layout">
             <section class="panel candidate-context-panel">
               <div class="analysis-card-head">
-                <div><div class="eyebrow">OPTIONAL PROFILE CONTEXT</div><h3>Your resume / skills / profile</h3></div>
+                <div><div class="eyebrow">PROFILE CONTEXT</div><h3>Your saved candidate profile</h3></div>
                 <span class="analysis-count" id="profileContextStatus">Local</span>
               </div>
               <div class="field">
                 <label for="candidateContextInput">Candidate context</label>
-                <textarea id="candidateContextInput" class="candidate-context-input" placeholder="Paste your resume, skills, qualifications, education, certifications or profile summary. This is saved only in your browser."></textarea>
-                <div class="analyzer-input-meta"><span id="candidateContextCount">0 characters</span><span>Used to identify profile matches and possible gaps.</span></div>
+                <textarea id="candidateContextInput" class="candidate-context-input" placeholder="Your structured Profile page automatically feeds this context. You can still edit it here for a one-off analysis."></textarea>
+                <div class="analyzer-input-meta"><span id="candidateContextCount">0 characters</span><span>Structured Profile data is synced here automatically.</span></div>
               </div>
               <div class="analyzer-actions profile-actions">
                 <button class="secondary-btn" id="clearCandidateContext">Clear profile context</button>
@@ -168,6 +169,84 @@
           </div>
         </section>
 
+        <section class="page" id="skillsPage">
+          <div class="page-heading">
+            <div><div class="eyebrow">CANDIDATE CAPABILITIES</div><h1>Skills & Qualifications</h1><p>A reusable view of the skills, certifications and languages stored in your profile.</p></div>
+            <button class="btn" id="openProfileFromSkills">Edit Profile</button>
+          </div>
+          <section class="skills-overview">
+            <article class="profile-summary-card"><span>Total capability items</span><strong id="skillsTotal">0</strong></article>
+            <article class="profile-summary-card"><span>Professional skills</span><strong id="skillsProfessionalCount">0</strong></article>
+            <article class="profile-summary-card"><span>Soft skills</span><strong id="skillsSoftCount">0</strong></article>
+            <article class="profile-summary-card"><span>Certifications</span><strong id="skillsCertCount">0</strong></article>
+          </section>
+          <div class="skills-category-grid">
+            <section class="panel skills-category"><div class="skills-category-head"><h3>Professional / technical skills</h3></div><div class="profile-chips" id="skillsProfessional"></div></section>
+            <section class="panel skills-category"><div class="skills-category-head"><h3>Soft / transferable skills</h3></div><div class="profile-chips" id="skillsSoft"></div></section>
+            <section class="panel skills-category"><div class="skills-category-head"><h3>Certifications & professional qualifications</h3></div><div class="profile-chips" id="skillsCertifications"></div></section>
+            <section class="panel skills-category"><div class="skills-category-head"><h3>Languages</h3></div><div class="profile-chips" id="skillsLanguages"></div></section>
+          </div>
+          <section class="panel profile-note"><strong>How this is used:</strong> these items are automatically included in the profile context used by the Job Analyzer and Match Score Engine.</section>
+        </section>
+
+        <section class="page" id="profilePage">
+          <div class="page-heading">
+            <div><div class="eyebrow">CANDIDATE PROFILE</div><h1>Profile & Preferences</h1><p>Build one reusable career profile for job analysis, matching, skills gaps and future CV tailoring.</p></div>
+            <button class="secondary-btn" id="clearStructuredProfile">Clear profile</button>
+          </div>
+
+          <div class="profile-layout">
+            <section class="profile-summary-grid">
+              <article class="profile-summary-card"><span>Profile completeness</span><strong id="profileCompleteness">0%</strong><div class="profile-progress"><span id="profileCompletenessBar"></span></div></article>
+              <article class="profile-summary-card"><span>Skills</span><strong id="profileSkillCount">0</strong></article>
+              <article class="profile-summary-card"><span>Target roles</span><strong id="profileTargetCount">0</strong></article>
+              <article class="profile-summary-card"><span>Certifications</span><strong id="profileCertCount">0</strong></article>
+            </section>
+
+            <form id="profileForm">
+              <section class="panel">
+                <div class="analysis-card-head"><div><div class="eyebrow">BASIC DETAILS</div><h3>Career identity & preferences</h3></div></div>
+                <div class="profile-form-grid">
+                  <div class="field"><label for="profile_fullName">Name</label><input id="profile_fullName" placeholder="Your name"></div>
+                  <div class="field"><label for="profile_location">Current location</label><input id="profile_location" placeholder="e.g. Dublin, Ireland"></div>
+                  <div class="field"><label for="profile_yearsExperience">Years of experience</label><input id="profile_yearsExperience" type="number" min="0" max="60" step="0.5" placeholder="e.g. 3"></div>
+                  <div class="field"><label for="profile_preferredArrangement">Preferred work arrangement</label><select id="profile_preferredArrangement"><option value="">No preference</option><option>On-site</option><option>Hybrid</option><option>Remote</option><option>Flexible</option></select></div>
+                  <div class="field profile-field-wide"><label for="profile_targetRoles">Target roles</label><input id="profile_targetRoles" placeholder="Financial Analyst, Data Analyst, Accountant, Network Engineer..."><p class="profile-help">Separate roles with commas.</p></div>
+                  <div class="field profile-field-wide"><label for="profile_industries">Target industries</label><input id="profile_industries" placeholder="Finance, Healthcare, Technology, Retail, Public Sector..."></div>
+                  <div class="field"><label for="profile_preferredLocations">Preferred locations</label><input id="profile_preferredLocations" placeholder="Dublin, Cork, Remote..."></div>
+                  <div class="field"><label for="profile_salaryPreference">Salary preference</label><input id="profile_salaryPreference" placeholder="e.g. €40,000–€50,000"></div>
+                  <div class="field"><label for="profile_workAuthorisation">Work authorisation</label><input id="profile_workAuthorisation" placeholder="e.g. Stamp 1G, EU citizen, permit required"></div>
+                  <div class="field"><label for="profile_drivingLicence">Driving licence</label><input id="profile_drivingLicence" placeholder="e.g. Full Irish licence / None"></div>
+                  <div class="field profile-field-wide"><label for="profile_languages">Languages</label><input id="profile_languages" placeholder="English, Portuguese, Hindi..."><p class="profile-help">Separate languages with commas.</p></div>
+                </div>
+              </section>
+
+              <section class="panel">
+                <div class="analysis-card-head"><div><div class="eyebrow">BACKGROUND</div><h3>Education, qualifications & capabilities</h3></div></div>
+                <div class="profile-form-grid">
+                  <div class="field profile-field-wide"><label for="profile_education">Education</label><textarea id="profile_education" class="profile-textarea" placeholder="Degrees, diplomas, courses, institutions and relevant study..."></textarea></div>
+                  <div class="field profile-field-wide"><label for="profile_certifications">Certifications / professional qualifications</label><textarea id="profile_certifications" class="profile-textarea" placeholder="ACCA, CFA, CCNA, CIPD, PMP, Safe Pass, NMBI, industry certificates..."></textarea><p class="profile-help">Use commas or one item per line.</p></div>
+                  <div class="field profile-field-wide"><label for="profile_professionalSkills">Professional / technical skills</label><textarea id="profile_professionalSkills" class="profile-textarea" placeholder="Excel, Power BI, Financial Analysis, Customer Service, SQL, AutoCAD, Project Management..."></textarea><p class="profile-help">Use commas or one item per line.</p></div>
+                  <div class="field profile-field-wide"><label for="profile_softSkills">Soft / transferable skills</label><textarea id="profile_softSkills" class="profile-textarea" placeholder="Communication, problem solving, leadership, stakeholder management..."></textarea><p class="profile-help">Use commas or one item per line.</p></div>
+                </div>
+              </section>
+
+              <section class="panel">
+                <div class="analysis-card-head"><div><div class="eyebrow">EXPERIENCE EVIDENCE</div><h3>What you have actually done</h3></div></div>
+                <div class="profile-form-grid">
+                  <div class="field profile-field-wide"><label for="profile_experienceSummary">Work experience summary</label><textarea id="profile_experienceSummary" class="profile-textarea profile-resume" placeholder="Summarise your roles, responsibilities, achievements, projects and measurable outcomes. Keep this factual—the matcher will use it as evidence."></textarea></div>
+                  <div class="field profile-field-wide"><label for="profile_resumeText">Resume / CV text (optional)</label><textarea id="profile_resumeText" class="profile-textarea profile-resume" placeholder="Paste your current CV text here for extra matching evidence. This remains only in this browser."></textarea></div>
+                </div>
+              </section>
+
+              <div class="profile-form-actions">
+                <span class="profile-save-status" id="profileSaveStatus"></span>
+                <div class="profile-save-group"><span class="profile-help">Saved locally in this browser.</span><button type="submit" class="btn">Save Profile</button></div>
+              </div>
+            </form>
+          </div>
+        </section>
+
         <section class="page" id="placeholderPage">
           <div class="panel placeholder"><h2 id="placeholderTitle">Coming Soon</h2><p id="placeholderDescription"></p><button class="btn" id="returnDashboard">← Return to Dashboard</button></div>
         </section>
@@ -207,7 +286,8 @@
       localStorage.setItem("irelandJobHuntOS", JSON.stringify({version:2,profile:{targetRoles:[]},jobs:[],dailyGoals:{},activity:[]}));
     }
   </script>
-  <script src="app.js?v=6"></script>
-  <script src="analyzer.js?v=6"></script>
+  <script src="app.js?v=7"></script>
+  <script src="analyzer.js?v=7"></script>
+  <script src="profile.js?v=7"></script>
 </body>
 </html>
