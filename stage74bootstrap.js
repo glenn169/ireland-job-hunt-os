@@ -5,7 +5,7 @@
   const loadIntegration=()=>{
     if([...document.scripts].some(script=>script.src.includes("stage74.js"))) return;
     const integration=document.createElement("script");
-    integration.src="stage74.js?v=16";
+    integration.src="stage74.js?v=17";
     integration.defer=true;
     document.head.appendChild(integration);
   };

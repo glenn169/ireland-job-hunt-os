@@ -263,4 +263,13 @@ async function s74Init(){
   let tries=0;const timer=setInterval(()=>{tries++;s74CreateProfilePanels();s74EnsureTailorCloudPanel();if(tries>40)clearInterval(timer);},200);
 }
 
+window.JobHuntCloudCV={
+  getClient:s74GetClient,
+  getSession:()=>s74Session,
+  getActiveMaster:()=>s74ActiveMaster,
+  bucket:S74_BUCKET,
+  openMaster:s74OpenMaster,
+  refreshHistory:s74LoadHistory
+};
+
 if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",s74Init);else s74Init();
