@@ -152,7 +152,7 @@ function s75Inject(){
   const page=s75q("tailorPage");const legacy=s75q("s72Generator");if(!page||!legacy||s75q("s75Panel"))return false;
   s75EnsureStyles();const panel=document.createElement("section");panel.id="s75Panel";panel.className="panel s75-panel";
   panel.innerHTML=`<div class="s75-head"><div><div class="eyebrow">MASTER DOCUMENT TAILORING</div><h3>Tailor the actual Master CV document</h3><p class="s75-status">DOCX mode edits only approved Word document sections and keeps the original private Master CV untouched.</p></div><span class="s75-badge">DOCX PRESERVE MODE</span></div><div id="s75State" class="s75-status">Connecting to Master CV storage…</div><div class="s75-options"><label><input id="s75Summary" type="checkbox" checked> Tailor Professional Summary</label><label><input id="s75Skills" type="checkbox" checked> Reorder existing skill paragraphs only</label></div><div class="s75-actions"><button class="btn" id="s75Prepare" type="button">Prepare document changes</button><button class="btn" id="s75Generate" type="button" disabled>Generate & save tailored DOCX</button><button class="secondary-btn" id="s75OpenMaster" type="button">Open Master CV</button><button class="secondary-btn" id="s75LegacyToggle" type="button">Show legacy text preview</button></div><div id="s75Diff" class="s75-diff"></div>`;
-  page.insertBefore(panel,legacy);s75Legacy(false);
+  const parent=legacy.parentNode||page;parent.insertBefore(panel,legacy);s75Legacy(false);
   s75q("s75Prepare")?.addEventListener("click",s75Prepare);
   s75q("s75Generate")?.addEventListener("click",s75Generate);
   s75q("s75OpenMaster")?.addEventListener("click",()=>s75Cloud()?.openMaster?.());
