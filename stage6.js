@@ -1,8 +1,8 @@
 "use strict";
 
-/* Feature loader: Stage 6 core + Stage 7 CV Tailoring + Stage 7.1 Smart Job Entry. */
+/* Feature loader: Stage 6 core + Stage 7 CV Tailoring + Stage 7.1 Smart Job Entry + Stage 7.2 CV Generator. */
 (function loadJobHuntFeatures(){
-  const scripts=["stage6-core.js?v=10","stage7.js?v=10","smartjob.js?v=10"];
+  const scripts=["stage6-core.js?v=11","stage7.js?v=11","smartjob.js?v=11","stage7cv.js?v=11"];
   scripts.forEach(src=>{
     if([...document.scripts].some(script=>script.src.includes(src.split("?")[0]))) return;
     const script=document.createElement("script");
