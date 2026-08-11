@@ -1,0 +1,42 @@
+name: Clean up Stage 7.5 legacy save
+
+on:
+  push:
+    branches:
+      - stage-7-5-master-cv-document-tailoring
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: stage-7-5-master-cv-document-tailoring
+          fetch-depth: 0
+      - name: Hide legacy text save in document mode
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('stage75docx.js')
+          text=p.read_text()
+          old='.s75-hidden{display:none!important}'
+          new='#s74SaveTailored{display:none!important}.s75-hidden{display:none!important}'
+          if old not in text:
+              raise SystemExit('Expected Stage 7.5 style marker not found')
+          p.write_text(text.replace(old,new,1))
+          PY
+          node --check stage75docx.js
+          grep -q '#s74SaveTailored{display:none!important}' stage75docx.js
+      - name: Remove one-time workflow and commit
+        run: |
+          rm .github/workflows/cleanup-stage75-legacy-save.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- stage75docx.js .github/workflows/cleanup-stage75-legacy-save.yml
+          git diff --cached --quiet && exit 0
+          git commit -m 'Disable legacy text save in DOCX preserve mode'
+          git push origin HEAD:stage-7-5-master-cv-document-tailoring
