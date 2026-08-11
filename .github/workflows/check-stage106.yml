@@ -1,0 +1,31 @@
+name: Check Stage 10.6
+
+on:
+  push:
+    branches: [stage-10-6-advanced-search]
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          node --check stage10.js
+          node --check stage10multi.js
+          node --check stage106.js
+          node --check stage6.js
+      - name: Remove one-time workflow
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/check-stage106.yml
+          git commit -m "Remove one-time Stage 10.6 syntax workflow"
+          git push
