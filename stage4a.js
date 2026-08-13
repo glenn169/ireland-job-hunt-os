@@ -10,7 +10,7 @@
 
    Stage 4C - CV Generation Prompt.
    Replaces the old built-in CV generator with a copyable prompt built only from
-   the saved Profile/CV and ATS keywords supported by that source evidence. */
+   the saved Profile/CV and ATS/job terms supported by that source evidence. */
 (function stage4aPdfProfileImport(){
   const PDF_ACCEPT = ".pdf,application/pdf";
   const PROFILE_PAGE_ID = "profilePage";
@@ -120,17 +120,29 @@
     return words.filter(w=>haystack.includes(w)).length/words.length>=0.65;
   }
 
-  function analyzerKeywords(job){
-    const notes=String(job?.notes||"");
-    const match=notes.match(/ATS keywords:\s*([^\n]+)/i);
+  function noteItems(notes,label){
+    const match=String(notes||"").match(new RegExp(`${label}:\\s*([^\\n]+)`,"i"));
     if(!match) return [];
-    return [...new Set(splitItems(match[1]).filter(v=>!/none detected/i.test(v)))];
+    return splitItems(match[1]).filter(v=>!/^none\b/i.test(v));
+  }
+
+  function jobKeywordPool(job){
+    const notes=String(job?.notes||"");
+    const ats=noteItems(notes,"ATS keywords");
+    const requirements=noteItems(notes,"Key requirements");
+    const qualifications=noteItems(notes,"Qualifications");
+    const requiredSkills=Array.isArray(job?.requiredSkills)?job.requiredSkills:splitItems(job?.requiredSkills||"");
+    const title=String(job?.position||"").trim();
+    const titleTerms=title?splitItems(title.replace(/[\/–—-]+/g,",")):[];
+    return [...new Set([...ats,...requiredSkills,...requirements,...qualifications,...titleTerms].map(v=>v.trim()).filter(Boolean))];
   }
 
   function buildGenerationPrompt(job, profile){
     const source=profileSource(profile);
-    const keywords=analyzerKeywords(job).filter(keyword=>supported(keyword,source));
-    return `Create a professional CV/resume for me as a PDF file, using the exact structure, section order, and clean single-column layout below. Use a simple sans-serif font, bold section headings, a horizontal rule under each heading, tight consistent spacing, and keep it to 1–2 pages. Do not add photos, graphics, tables, columns, icons, or colour blocks. The document must remain ATS-friendly.\n\nTARGET JOB\nRole: ${job.position||""}\nCompany: ${job.company||""}\n\nSUPPORTED ATS KEYWORDS FROM THE ANALYSED JOB\n${keywords.length?keywords.join(", "):"No ATS keywords were automatically verified against the source CV."}\n\nUse these ATS keywords only where they are supported by the CV/profile information supplied below. Do not claim experience, certifications, tools, responsibilities or achievements that are not present in the source CV.\n\nDo not force unsupported job-description terms into the CV. Use the supported keywords naturally and only in sections where the source evidence justifies them.\n\nSTRUCTURE TO FOLLOW\n1. Header — Full Name | City/Country | Phone | Email | LinkedIn | GitHub/portfolio\n2. Professional Summary — 2–4 concise sentences covering role/field, experience, key technologies/skills and target role\n3. Core Skills — 8–12 short skill phrases supported by the source CV\n4. Certifications — include only certifications present in the source; mark In Progress only if the source says so\n5. Technical Skills — grouped as appropriate under Programming, Tools/Software, Platforms/OS, Frameworks & Standards, Other\n6. Professional Experience — reverse chronological; Job Title | Dates, Company, Location; then concise achievement/responsibility bullets\n7. Projects — Title | Date, then concise bullets describing what was built/done, tools actually used and outcome\n8. Education — reverse chronological; Degree, Institution, Dates and GPA/CGPA only if present and useful\n9. Achievements and Recognition — only awards/recognition present in the source\n10. Availability / Work Authorization — include only if relevant and present in the source\n\nWRITING RULES\n- Start bullets with strong action verbs where accurate.\n- Quantify achievements only when the source CV supplies the number, percentage, scale or measurable result.\n- Keep bullets tight, normally one line and no more than two lines.\n- Do not invent employers, dates, job titles, projects, education, tools, technologies, certifications, responsibilities, achievements or metrics.\n- Do not infer proficiency from a keyword unless the source actually supports that proficiency.\n- Preserve factual accuracy even if that means leaving a desirable job requirement out.\n- Return a polished final CV suitable for export as a 1–2 page PDF.\n\nPROFILE / CV INFORMATION\nFull Name: ${profile.fullName||""}\nLocation: ${profile.location||""}\nYears of Experience: ${profile.yearsExperience||""}\nTarget Roles: ${profile.targetRoles||""}\nProfessional / Technical Skills: ${profile.professionalSkills||""}\nSoft Skills: ${profile.softSkills||""}\nCertifications: ${profile.certifications||""}\nEducation: ${profile.education||""}\nLanguages: ${profile.languages||""}\nWork Authorization: ${profile.workAuthorisation||""}\nExperience Summary: ${profile.experienceSummary||""}\n\nSOURCE CV TEXT — factual source of truth\n${profile.resumeText||""}`;
+    const pool=jobKeywordPool(job);
+    const keywords=pool.filter(keyword=>supported(keyword,source));
+    const missing=pool.filter(keyword=>!supported(keyword,source));
+    return `Create a professional CV/resume for me as a PDF file, using the exact structure, section order, and clean single-column layout below. Use a simple sans-serif font, bold section headings, a horizontal rule under each heading, tight consistent spacing, and keep it to 1–2 pages. Do not add photos, graphics, tables, columns, icons, or colour blocks. The document must remain ATS-friendly.\n\nTARGET JOB\nRole: ${job.position||""}\nCompany: ${job.company||""}\n\nSUPPORTED ATS / JOB KEYWORDS VERIFIED AGAINST THE SOURCE CV\n${keywords.length?keywords.join(", "):"No job-specific terms were automatically verified against the source CV."}\n\nMISSING OR UNSUPPORTED JOB TERMS — DO NOT INVENT THESE\n${missing.length?missing.join(", "):"No unsupported job terms were identified from the saved analysis."}\n\nUse the supported terms only where they are supported by the CV/profile information supplied below. Do not claim experience, certifications, tools, responsibilities or achievements that are not present in the source CV.\n\nDo not force unsupported job-description terms into the CV. Use the supported keywords naturally and only in sections where the source evidence justifies them.\n\nSTRUCTURE TO FOLLOW\n1. Header — Full Name | City/Country | Phone | Email | LinkedIn | GitHub/portfolio\n2. Professional Summary — 2–4 concise sentences covering role/field, experience, key technologies/skills and target role\n3. Core Skills — 8–12 short skill phrases supported by the source CV\n4. Certifications — include only certifications present in the source; mark In Progress only if the source says so\n5. Technical Skills — grouped as appropriate under Programming, Tools/Software, Platforms/OS, Frameworks & Standards, Other\n6. Professional Experience — reverse chronological; Job Title | Dates, Company, Location; then concise achievement/responsibility bullets\n7. Projects — Title | Date, then concise bullets describing what was built/done, tools actually used and outcome\n8. Education — reverse chronological; Degree, Institution, Dates and GPA/CGPA only if present and useful\n9. Achievements and Recognition — only awards/recognition present in the source\n10. Availability / Work Authorization — include only if relevant and present in the source\n\nWRITING RULES\n- Start bullets with strong action verbs where accurate.\n- Quantify achievements only when the source CV supplies the number, percentage, scale or measurable result.\n- Keep bullets tight, normally one line and no more than two lines.\n- Do not invent employers, dates, job titles, projects, education, tools, technologies, certifications, responsibilities, achievements or metrics.\n- Do not infer proficiency from a keyword unless the source actually supports that proficiency.\n- Preserve factual accuracy even if that means leaving a desirable job requirement out.\n- Return a polished final CV suitable for export as a 1–2 page PDF.\n\nPROFILE / CV INFORMATION\nFull Name: ${profile.fullName||""}\nLocation: ${profile.location||""}\nYears of Experience: ${profile.yearsExperience||""}\nTarget Roles: ${profile.targetRoles||""}\nProfessional / Technical Skills: ${profile.professionalSkills||""}\nSoft Skills: ${profile.softSkills||""}\nCertifications: ${profile.certifications||""}\nEducation: ${profile.education||""}\nLanguages: ${profile.languages||""}\nWork Authorization: ${profile.workAuthorisation||""}\nExperience Summary: ${profile.experienceSummary||""}\n\nSOURCE CV TEXT — factual source of truth\n${profile.resumeText||""}`;
   }
 
   function ensurePromptStyles(){
@@ -155,7 +167,7 @@
     const section=document.createElement("section");
     section.id="stage4cPrompt";
     section.className="panel s4c-panel";
-    section.innerHTML=`<div><div class="eyebrow">THE CV GENERATION PROMPT</div><h3>Build an ATS-targeted prompt from verified CV evidence</h3><p class="s4c-note">Choose a saved analysed job above. Only ATS keywords that are found in your saved Profile/CV evidence are included in the prompt.</p></div><div class="s4c-toolbar"><button class="btn" id="stage4cBuild" type="button">Build CV Generation Prompt</button><button class="secondary-btn" id="stage4cCopy" type="button" disabled>Copy Prompt</button></div><textarea id="stage4cOutput" class="s4c-prompt" readonly placeholder="Your CV generation prompt will appear here."></textarea>`;
+    section.innerHTML=`<div><div class="eyebrow">THE CV GENERATION PROMPT</div><h3>Build an ATS-targeted prompt from verified CV evidence</h3><p class="s4c-note">Choose a saved analysed job above. The prompt checks ATS keywords, required skills, requirements, qualifications and role terms against your saved Profile/CV.</p></div><div class="s4c-toolbar"><button class="btn" id="stage4cBuild" type="button">Build CV Generation Prompt</button><button class="secondary-btn" id="stage4cCopy" type="button" disabled>Copy Prompt</button></div><textarea id="stage4cOutput" class="s4c-prompt" readonly placeholder="Your CV generation prompt will appear here."></textarea>`;
     (output?.parentNode||page).insertBefore(section,output?output.nextSibling:null);
 
     document.getElementById("stage4cBuild")?.addEventListener("click",()=>{
