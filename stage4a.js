@@ -2,7 +2,11 @@
 
 /* Stage 4A - PDF-only Profile CV import.
    Narrow compatibility layer: keeps the existing Profile parser and UI,
-   but restricts Profile/Master CV uploads to PDF and reuses PDF.js extraction. */
+   but restricts Profile/Master CV uploads to PDF and reuses PDF.js extraction.
+
+   Stage 4B - Job Analyzer automatically uses the saved Profile CV.
+   The existing candidate context field remains in the DOM for analyzer compatibility,
+   but users no longer need to edit or save it manually. */
 (function stage4aPdfProfileImport(){
   const PDF_ACCEPT = ".pdf,application/pdf";
   const PROFILE_PAGE_ID = "profilePage";
@@ -38,7 +42,6 @@
     page.querySelectorAll("small, .s74-status, .profile-note, .analysis-notice").forEach(el=>{
       const text = el.textContent || "";
       if(/PDF,\s*DOCX\s*or\s*TXT/i.test(text)) el.textContent = text.replace(/PDF,\s*DOCX\s*or\s*TXT/gi,"PDF");
-      else if(/PDF,\s*DOCX\s*or\s*TXT/i.test(text)) el.textContent = "PDF only.";
     });
   }
 
@@ -101,4 +104,39 @@
     attempts += 1;
     if(attempts >= 40) clearInterval(timer);
   },250);
+})();
+
+(function stage4bAnalyzerProfileAuto(){
+  function syncFromProfile(){
+    if(typeof window.loadStructuredProfile !== "function" || typeof window.syncAnalyzerContext !== "function") return;
+    window.syncAnalyzerContext(window.loadStructuredProfile());
+  }
+
+  function init(){
+    const page=document.getElementById("analyzerPage");
+    if(!page) return;
+
+    syncFromProfile();
+
+    const oldPanel=page.querySelector(".candidate-context-panel");
+    if(oldPanel) oldPanel.style.display="none";
+
+    const inputPanel=page.querySelector(".analyzer-input-panel");
+    if(inputPanel && !document.getElementById("stage4bProfileNotice")){
+      const notice=document.createElement("section");
+      notice.id="stage4bProfileNotice";
+      notice.className="panel";
+      notice.innerHTML='<div class="analysis-card-head"><div><div class="eyebrow">PROFILE CV</div><h3>Using your saved Profile CV automatically</h3></div><span class="analysis-count">AUTO</span></div><p class="analysis-notice">Paste only the job description below. The Job Analyzer automatically matches it against the CV and profile information saved on your Profile page.</p>';
+      inputPanel.parentNode.insertBefore(notice,inputPanel);
+    }
+
+    const analyzeButton=document.getElementById("analyzeJobButton");
+    if(analyzeButton && !analyzeButton.dataset.stage4bBound){
+      analyzeButton.dataset.stage4bBound="1";
+      analyzeButton.addEventListener("click",syncFromProfile,true);
+    }
+  }
+
+  if(document.readyState === "loading") document.addEventListener("DOMContentLoaded",init,{once:true});
+  else init();
 })();
