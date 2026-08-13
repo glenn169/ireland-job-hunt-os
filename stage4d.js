@@ -1,21 +1,40 @@
 "use strict";
 
-/* Stage 4D - Job-specific ATS Checker.
-   Compares a saved Profile CV or uploaded tailored PDF against one saved/analyzed job.
-   Browser-only; reuses the existing PDF extractor from the Profile workflow. */
+/* Stage 4D.1 - Calibrated job-specific ATS Checker.
+   Scores evidence against one saved/analyzed job using concept-level matching,
+   deduplicated requirements, calibrated weights, and transparent gap reporting. */
 (function stage4dJobSpecificAtsChecker(){
   const PROFILE_KEY="irelandJobHuntOS_profileV1";
   const APP_KEY="irelandJobHuntOS";
   const STOP=new Set("the a an and or to of in on for with from by as at is are be this that you your our we they it role job work working required preferred desirable essential have has ability strong excellent good knowledge experience skills skill years year within across using use provide support manage management responsible responsibilities candidate company opportunity looking including related relevant successful must should can who their through into about".split(" "));
+  const TECH_TERMS=["tcp/ip","dns","dhcp","vlan","vlans","routing","switching","cisco ios","cisco","wireshark","splunk","wazuh","siem","active directory","windows server","linux","windows","vpn","firewall","firewalls","acl","acls","aws","azure","ccna","security+","comptia security+","itil","servicenow","solarwinds","prtg","nagios","zabbix","snmp","bgp","ospf","mpls","lan","wan","voip","incident response","alert triage","network monitoring","log analysis","troubleshooting","technical support","customer support","escalation","ticketing","network security","soc","noc"];
+  const ALIASES=[
+    ["network monitoring",["network monitoring","monitor network","monitoring network","network operations","noc monitoring","infrastructure monitoring"]],
+    ["incident response",["incident response","incident management","incident handling","security incident","incident investigation"]],
+    ["troubleshooting",["troubleshooting","troubleshoot","diagnose","diagnosis","investigate","investigation","fault finding"]],
+    ["alert triage",["alert triage","security alerts","alert monitoring","monitoring alerts","alert investigation"]],
+    ["siem",["siem","security information and event management","log monitoring","log analysis"]],
+    ["active directory",["active directory","windows active directory","microsoft active directory"]],
+    ["technical support",["technical support","network support","it support","user support","customer support"]],
+    ["network operations",["network operations","network operation center","network operations center","noc","network support"]]
+  ];
   let uploadedPdfText="";
   let uploadedPdfName="";
 
   const q=id=>document.getElementById(id);
-  const uniq=values=>[...new Set(values.filter(Boolean))];
-  const split=value=>String(value||"").split(/\n|,|\|/).map(v=>v.trim()).filter(Boolean);
   const esc=value=>String(value||"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
-  const norm=value=>String(value||"").toLowerCase().replace(/[^a-z0-9+#. ]/g," ").replace(/\s+/g," ").trim();
-  const tokens=value=>norm(value).split(" ").filter(v=>v.length>2&&!STOP.has(v));
+  const norm=value=>String(value||"").toLowerCase().replace(/[^a-z0-9+#./ -]/g," ").replace(/\s+/g," ").trim();
+  const tokens=value=>norm(value).split(/[\s/]+/).filter(v=>v.length>2&&!STOP.has(v));
+  const split=value=>String(value||"").split(/\n|,|\||;/).map(v=>v.trim()).filter(Boolean);
+
+  function uniq(values){
+    const seen=new Set();
+    return values.filter(value=>{
+      const key=norm(value).replace(/\b(required|essential|must|mandatory|minimum|preferred|desirable|nice to have|advantage|bonus)\b/g,"").trim();
+      if(!key||seen.has(key)) return false;
+      seen.add(key);return true;
+    });
+  }
 
   function readProfile(){try{return JSON.parse(localStorage.getItem(PROFILE_KEY)||"{}");}catch{return {};}}
   function readJobs(){try{const state=JSON.parse(localStorage.getItem(APP_KEY)||"{}");return Array.isArray(state.jobs)?state.jobs:[];}catch{return [];}}
@@ -25,6 +44,7 @@
     const m=String(notes||"").match(new RegExp(`${label}:\\s*([^\\n]+)`,"i"));
     return m?m[1].trim():"";
   }
+
   function analyzerData(job){
     const notes=String(job?.notes||"");
     const requirements=split(valueAfter(notes,"Key requirements")).filter(v=>!/none explicitly detected/i.test(v));
@@ -44,77 +64,131 @@
     return {required,preferred,unclear};
   }
 
-  function match(item,source){
+  function extractConcepts(items){
+    const out=[];
+    items.forEach(item=>{
+      const text=String(item||"").trim();
+      if(!text) return;
+      const lower=norm(text);
+      const found=TECH_TERMS.filter(term=>lower.includes(norm(term)));
+      if(found.length) out.push(...found);
+      const fragments=text.split(/\band\b|\bor\b|\/|•|·/i).map(v=>v.trim()).filter(v=>v.length>=3&&v.length<=80);
+      if(!found.length&&fragments.length>1) out.push(...fragments);
+      else if(!found.length) out.push(text);
+    });
+    return uniq(out.map(v=>v.replace(/^[-–—•\s]+|[-–—•\s]+$/g,"")));
+  }
+
+  function aliasesFor(item){
+    const key=norm(item);
+    const group=ALIASES.find(([canonical,forms])=>key.includes(norm(canonical))||forms.some(form=>key.includes(norm(form))||norm(form).includes(key)));
+    return group?group[1]:[];
+  }
+
+  function certificationStatus(item,source){
     const target=norm(item), hay=norm(source);
-    if(!target||!hay) return false;
-    if(hay.includes(target)) return true;
+    const certLike=/\b(ccna|cissp|security\+|comptia|itil|cisa|cism|ceh|certif|license|licence)\b/i.test(item);
+    if(!certLike) return null;
+    const names=tokens(target).filter(t=>!/[0-9]/.test(t));
+    const present=target&&hay.includes(target) || names.some(name=>hay.includes(name));
+    if(!present) return 0;
+    const compact=String(source||"").toLowerCase();
+    const certWord=names.find(name=>compact.includes(name))||target;
+    const idx=compact.indexOf(certWord);
+    const windowText=idx>=0?compact.slice(Math.max(0,idx-80),idx+140):compact;
+    return /in progress|pursuing|expected\s+20\d{2}|currently pursuing/.test(windowText)?0.7:1;
+  }
+
+  function evidenceScore(item,source){
+    const target=norm(item), hay=norm(source);
+    if(!target||!hay) return 0;
+    const cert=certificationStatus(item,source);
+    if(cert!==null) return cert;
+    if(hay.includes(target)) return 1;
+    if(aliasesFor(item).some(alias=>hay.includes(norm(alias)))) return 1;
     const words=tokens(item);
-    if(!words.length) return false;
-    return words.filter(w=>hay.includes(w)).length/words.length>=0.65;
+    if(!words.length) return 0;
+    const hits=words.filter(w=>hay.includes(w)).length;
+    const ratio=hits/words.length;
+    if(words.length<=2) return ratio===1?1:0;
+    if(ratio>=0.8) return 1;
+    if(ratio>=0.6) return 0.75;
+    if(ratio>=0.45) return 0.5;
+    return 0;
   }
 
   function coverage(items,source){
     const set=uniq(items);
-    if(!set.length) return {score:null,matched:[],missing:[],total:0};
-    const matched=set.filter(v=>match(v,source));
-    const missing=set.filter(v=>!match(v,source));
-    return {score:Math.round(matched.length/set.length*100),matched,missing,total:set.length};
+    if(!set.length) return {score:null,matched:[],partial:[],missing:[],total:0,points:0};
+    const rows=set.map(item=>({item,value:evidenceScore(item,source)}));
+    const points=rows.reduce((sum,row)=>sum+row.value,0);
+    return {
+      score:Math.round(points/set.length*100),
+      matched:rows.filter(r=>r.value>=0.95).map(r=>r.item),
+      partial:rows.filter(r=>r.value>0&&r.value<0.95).map(r=>`${r.item} — partial evidence`),
+      missing:rows.filter(r=>r.value===0).map(r=>r.item),
+      total:set.length,points
+    };
   }
 
   function titleScore(job,source){
     const title=String(job?.position||"").trim();
-    if(!title) return {score:null,matched:[],missing:[],total:0};
-    if(match(title,source)) return {score:100,matched:[title],missing:[],total:1};
-    const titleWords=tokens(title);
+    if(!title) return {score:null,matched:[],partial:[],missing:[],total:0};
     const hay=norm(source);
+    if(hay.includes(norm(title))) return {score:100,matched:[title],partial:[],missing:[],total:1};
+    const titleWords=tokens(title);
     const hits=titleWords.filter(w=>hay.includes(w)).length;
-    const score=titleWords.length?Math.round(hits/titleWords.length*100):0;
-    return {score,matched:hits?[title]:[],missing:hits===titleWords.length?[]:[title],total:1};
+    let score=titleWords.length?Math.round(hits/titleWords.length*100):0;
+    if(/\bnoc\b|network operations?/i.test(title) && /(network operations?|network support|network security|routing|switching|tcp\/ip|cisco)/i.test(source)) score=Math.max(score,75);
+    else if(/\bsoc\b|security analyst/i.test(title) && /(siem|incident response|alert triage|security monitoring|splunk|wazuh)/i.test(source)) score=Math.max(score,75);
+    return {score,matched:score>=80?[title]:[],partial:score>=40&&score<80?[`${title} — transferable title evidence`]:[],missing:score<40?[title]:[],total:1};
   }
 
-  function educationItems(job,data){
-    const all=[...data.qualifications,...data.requirements];
-    return all.filter(v=>/\b(degree|bachelor|master|msc|bsc|diploma|education|university|college|graduate)\b/i.test(v));
+  function educationItems(data){
+    return extractConcepts([...data.qualifications,...data.requirements].filter(v=>/\b(degree|bachelor|master|msc|bsc|diploma|education|university|college|graduate)\b/i.test(v)));
   }
 
   function certificationItems(data){
-    return uniq([...data.qualifications,...data.requirements].filter(v=>/\b(certif|license|licence|ccna|cissp|comptia|security\+|azure|aws|itil|pmp|cisa|cism|ceh)\b/i.test(v)));
+    return extractConcepts([...data.qualifications,...data.requirements].filter(v=>/\b(certif|license|licence|ccna|cissp|comptia|security\+|azure|aws|itil|pmp|cisa|cism|ceh)\b/i.test(v)));
   }
 
   function roleResponsibilityItems(data){
-    return uniq(data.requirements.filter(v=>! /\b(degree|bachelor|master|certif|license|licence)\b/i.test(v)));
+    return extractConcepts(data.requirements.filter(v=>!/\b(degree|bachelor|master|certif|license|licence)\b/i.test(v)));
   }
 
   function calculate(job,source){
     const data=analyzerData(job);
     const classes=classifyRequirements(data.requirements);
-    const requiredItems=uniq([...data.requiredSkills,...classes.required,...classes.unclear]);
-    const preferredItems=classes.preferred;
+    const requiredItems=extractConcepts([...data.requiredSkills,...classes.required,...classes.unclear]);
+    const preferredItems=extractConcepts(classes.preferred);
+    const keywords=extractConcepts(data.keywords);
     const certs=certificationItems(data);
-    const edu=educationItems(job,data);
+    const edu=educationItems(data);
     const responsibilities=roleResponsibilityItems(data);
-    const keyword=coverage(data.keywords,source);
+
+    const keyword=coverage(keywords,source);
     const required=coverage(requiredItems,source);
     const preferred=coverage(preferredItems,source);
     const responsibility=coverage(responsibilities,source);
-    const qualification=coverage(certs.length?certs:data.qualifications,source);
+    const qualification=coverage(certs.length?certs:extractConcepts(data.qualifications),source);
     const title=titleScore(job,source);
     const education=coverage(edu,source);
 
     const components=[
-      {key:"keywords",label:"ATS keyword coverage",weight:30,...keyword},
-      {key:"required",label:"Required / essential skills",weight:25,...required},
+      {key:"keywords",label:"ATS keyword coverage",weight:25,...keyword},
+      {key:"required",label:"Required / essential skills",weight:35,...required},
       {key:"responsibility",label:"Experience & responsibility alignment",weight:20,...responsibility},
       {key:"qualification",label:"Qualifications / certifications",weight:10,...qualification},
-      {key:"title",label:"Role / title relevance",weight:10,...title},
+      {key:"title",label:"Role / title relevance",weight:5,...title},
       {key:"education",label:"Education",weight:5,...education}
     ];
     const available=components.filter(c=>c.score!==null);
     const weight=available.reduce((s,c)=>s+c.weight,0);
     const overall=weight?Math.round(available.reduce((s,c)=>s+c.score*c.weight,0)/weight):0;
     const missingRequired=uniq([...required.missing,...qualification.missing,...education.missing]);
+    const partialEvidence=uniq(components.flatMap(c=>c.partial||[]));
     const missingPreferred=uniq(preferred.missing);
-    return {overall,components,missingRequired,missingPreferred,data,preferred};
+    return {overall,components,missingRequired,missingPreferred,partialEvidence};
   }
 
   function ensureStyles(){
@@ -129,7 +203,7 @@
     const placeholder=q("placeholderPage");if(!placeholder) return;
     ensureStyles();
     const page=document.createElement("section");page.id="atsCheckerPage";page.className="page";
-    page.innerHTML=`<div class="page-heading"><div><div class="eyebrow">JOB-SPECIFIC ATS CHECK</div><h1>ATS Checker</h1><p>Compare your saved Profile CV or a tailored PDF against one specific saved/analyzed job.</p></div></div><div class="s4d-shell"><section class="panel"><div class="s4d-controls"><div class="field"><label for="s4dJob">Saved / analyzed job</label><select id="s4dJob"><option value="">Choose a job…</option></select></div><div class="field"><label for="s4dSource">CV source</label><select id="s4dSource"><option value="profile">Saved Profile / Master CV</option><option value="pdf">Uploaded tailored PDF</option></select></div></div><div class="s4d-actions"><input id="s4dPdf" type="file" accept=".pdf,application/pdf" hidden><button class="secondary-btn" id="s4dUpload" type="button">Upload Tailored PDF</button><button class="btn" id="s4dRun" type="button">Run ATS Check</button><span id="s4dFileName" class="s4d-file">No tailored PDF selected.</span></div><p class="s4d-note">The score is a transparent evidence-coverage estimate, not a prediction of any employer's ATS. Missing terms are shown separately so unsupported claims are not added to your CV.</p></section><section id="s4dOutput"><div class="panel s4d-note">Choose a saved job, select the CV source, then run the ATS check.</div></section></div>`;
+    page.innerHTML=`<div class="page-heading"><div><div class="eyebrow">JOB-SPECIFIC ATS CHECK</div><h1>ATS Checker</h1><p>Compare your saved Profile CV or a tailored PDF against one specific saved/analyzed job.</p></div></div><div class="s4d-shell"><section class="panel"><div class="s4d-controls"><div class="field"><label for="s4dJob">Saved / analyzed job</label><select id="s4dJob"><option value="">Choose a job…</option></select></div><div class="field"><label for="s4dSource">CV source</label><select id="s4dSource"><option value="profile">Saved Profile / Master CV</option><option value="pdf">Uploaded tailored PDF</option></select></div></div><div class="s4d-actions"><input id="s4dPdf" type="file" accept=".pdf,application/pdf" hidden><button class="secondary-btn" id="s4dUpload" type="button">Upload Tailored PDF</button><button class="btn" id="s4dRun" type="button">Run ATS Check</button><span id="s4dFileName" class="s4d-file">No tailored PDF selected.</span></div><p class="s4d-note">Calibrated scoring checks whether your CV contains evidence for each job requirement. Required criteria carry more weight than wording similarity; repeated concepts are counted once.</p></section><section id="s4dOutput"><div class="panel s4d-note">Choose a saved job, select the CV source, then run the ATS check.</div></section></div>`;
     placeholder.parentNode.insertBefore(page,placeholder);
   }
 
@@ -163,9 +237,10 @@
 
   function render(result,job,sourceLabel){
     const out=q("s4dOutput");if(!out) return;
-    const componentHtml=result.components.map(c=>`<div class="s4d-card"><span>${esc(c.label)} · ${c.weight}% weight</span><strong>${c.score===null?"N/A":`${c.score}%`}</strong><small>${c.total?`${c.matched.length}/${c.total} items found in CV evidence.`:"No usable job requirement in this category."}</small></div>`).join("");
+    const componentHtml=result.components.map(c=>`<div class="s4d-card"><span>${esc(c.label)} · ${c.weight}% weight</span><strong>${c.score===null?"N/A":`${c.score}%`}</strong><small>${c.total?`${c.matched.length} full + ${(c.partial||[]).length} partial / ${c.total} concepts.`:"No explicit job requirement in this category."}</small></div>`).join("");
     const matched=uniq(result.components.flatMap(c=>c.matched||[])).slice(0,30);
-    out.innerHTML=`<section class="panel s4d-summary"><div class="s4d-score">${result.overall}%<small>JOB-SPECIFIC ATS EVIDENCE SCORE</small></div><div><div class="eyebrow">${esc(job.position||"")} · ${esc(job.company||"")}</div><h3>${result.overall>=80?"Strong evidence coverage":result.overall>=65?"Good evidence coverage":result.overall>=50?"Moderate evidence coverage":"Important gaps to review"}</h3><p class="s4d-note">CV source: ${esc(sourceLabel)}. The checker only credits evidence actually found in this CV source.</p></div></section><section class="s4d-components">${componentHtml}</section><div class="s4d-grid">${renderList("Matched evidence",matched,"good")}${renderList("Missing required / essential terms",result.missingRequired,"bad")}</div><div class="s4d-grid">${renderList("Missing preferred / desirable terms",result.missingPreferred,"warn")}${renderList("ATS keywords not found",result.components.find(c=>c.key==="keywords")?.missing||[],"warn")}</div>`;
+    const verdict=result.overall>=80?"Strong alignment":result.overall>=65?"Competitive alignment":result.overall>=50?"Partial alignment":"Substantial genuine gaps";
+    out.innerHTML=`<section class="panel s4d-summary"><div class="s4d-score">${result.overall}%<small>CALIBRATED JOB-SPECIFIC ATS SCORE</small></div><div><div class="eyebrow">${esc(job.position||"")} · ${esc(job.company||"")}</div><h3>${verdict}</h3><p class="s4d-note">CV source: ${esc(sourceLabel)}. This is an evidence-coverage estimate, not a reproduction of an employer ATS algorithm. Job-title wording has only 5% weight.</p></div></section><section class="s4d-components">${componentHtml}</section><div class="s4d-grid">${renderList("Matched evidence",matched,"good")}${renderList("Partial / transferable evidence",result.partialEvidence,"warn")}</div><div class="s4d-grid">${renderList("Missing required / essential evidence",result.missingRequired,"bad")}${renderList("Missing preferred / desirable evidence",result.missingPreferred,"warn")}</div><div class="s4d-grid">${renderList("ATS keywords not found",result.components.find(c=>c.key==="keywords")?.missing||[],"warn")}${renderList("Why points were lost",uniq([...result.missingRequired,...result.missingPreferred,...(result.components.find(c=>c.key==="keywords")?.missing||[])]).map(v=>`${v} — no supporting CV evidence detected`),"bad")}</div>`;
   }
 
   async function handlePdf(file){
